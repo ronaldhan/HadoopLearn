@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html class="theme theme-white">
+<head>
+<meta charset="utf-8">
+<title>Linux SSH免密码登陆</title>
+<link href="https://www.zybuluo.com/static/assets/template-theme-white.css" rel="stylesheet" media="screen">
+</head>
+<body class="theme theme-white">
+<div id="wmd-preview" class="wmd-preview wmd-preview-full-reader"><div class="md-section-divider"></div><div class="md-section-divider"></div><h1 id="linux-ssh免密码登陆" data-anchor-id="pbjk">Linux SSH免密码登陆</h1><p data-anchor-id="02t4"><code>Linux</code> <code>SSH</code></p><hr><div class="md-section-divider"></div><h3 id="内容目录" data-anchor-id="jnab">内容目录</h3><p data-anchor-id="kwgz"><div class="toc"><div class="toc">
+<ul>
+<li><a href="#linux-ssh免密码登陆">Linux SSH免密码登陆</a><ul>
+<li><ul>
+<li><a href="#内容目录">内容目录</a><ul>
+<li><a href="#root账号操作">root账号操作</a></li>
+<li><a href="#hadoop账号操作">hadoop账号操作</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</p><div class="md-section-divider"></div><h4 id="root账号操作" data-anchor-id="jhur">root账号操作</h4><ul data-anchor-id="o35h">
+<li><p>修改<code>/etc/ssh/sshd_config</code>文件，将其中三行的注释去掉，如下： <br>
+<img src="http://static.zybuluo.com/ronaldhan/96bwzyd9xgujw0h4xy9i3qvo/sshd_config.png" alt="sshd_config.png-7.4kB" title=""></p></li>
+<li><p>重启ssh服务，之后退出root</p>
+
+<blockquote class="white-blockquote">
+  <p>service sshd restart</p>
+</blockquote></li>
+</ul><div class="md-section-divider"></div><h4 id="hadoop账号操作" data-anchor-id="zfn2">hadoop账号操作</h4><ul data-anchor-id="m7pt">
+<li><p>主机信息如下： <br>
+<img src="http://static.zybuluo.com/ronaldhan/53klzgnzdz67xzuf94x10edm/%E4%B8%BB%E6%9C%BA%E9%85%8D%E7%BD%AE.png" alt="主机配置.png-13.6kB" title=""></p></li>
+<li><p>检查当前用户home目录中是否有.ssh目录，没有则创建此目录</p>
+
+<ol><li>执行以下命令生成密钥对，分别为id_rsa和id_rsa.pub，其中后者为公钥</li></ol></li>
+</ul><div class="md-section-divider"></div><pre style="" data-anchor-id="ybgd" class="prettyprint linenums prettyprinted"><ol class="linenums"><li class="L0"><code class="language-shell"><span class="com"># 生成密钥对，可以选择rsa或者dsa算法</span></code></li><li class="L1"><code class="language-shell"><span class="pln">ssh</span><span class="pun">-</span><span class="pln">keygen </span><span class="pun">-</span><span class="pln">t rsa </span></code></li><li class="L2"><code class="language-shell"><span class="com"># 对于所有提问，均直接回车确认即可</span></code></li><li class="L3"><code class="language-shell"><span class="com"># passphrase中也直接回车确认</span></code></li></ol></pre><ul data-anchor-id="qce8">
+<li>创建authorized_keys</li>
+</ul><div class="md-section-divider"></div><pre style="" data-anchor-id="275h" class="prettyprint linenums prettyprinted"><ol class="linenums"><li class="L0"><code class="language-shell"><span class="com"># pub文件需要导入到authorized_keys，作为登陆凭证</span></code></li><li class="L1"><code class="language-shell"><span class="pln">cat id_rsa</span><span class="pun">.</span><span class="pln">pub </span><span class="pun">&gt;&gt;</span><span class="pln"> authorized_keys</span></code></li></ol></pre><ul data-anchor-id="9b1g">
+<li>修改文件权限(重要)</li>
+</ul><div class="md-section-divider"></div><pre style="" data-anchor-id="6wca" class="prettyprint linenums prettyprinted"><ol class="linenums"><li class="L0"><code class="language-shell"><span class="com"># 需要修改.ssh目录和authorized_keys的权限</span></code></li><li class="L1"><code class="language-shell"><span class="pln">chmod </span><span class="lit">600</span><span class="pln"> authorized_keys</span></code></li><li class="L2"><code class="language-shell"><span class="pln">chmod </span><span class="lit">700</span><span class="pln"> </span><span class="pun">.</span><span class="pln">ssh</span></code></li></ol></pre><ul data-anchor-id="3ce7">
+<li>免密码登陆其他机器 <br>
+完成以上步骤已经可以通过<code>ssh hostname</code>来无密码登陆本机，要想实现其他机器的免密码登陆，需要将此机器的公钥发送到其他机器的authorized_keys中</li>
+</ul><div class="md-section-divider"></div><pre style="" data-anchor-id="i8as" class="prettyprint linenums prettyprinted"><ol class="linenums"><li class="L0"><code class="language-shell"><span class="pln">cat </span><span class="pun">~</span><span class="str">/.ssh/</span><span class="pln">id_rsa</span><span class="pun">.</span><span class="pln">pub </span><span class="pun">|</span><span class="pln"> ssh hadoop@hadoop</span><span class="pun">-</span><span class="pln">master </span><span class="str">'cat - &gt;&gt; ~/.ssh/authorized_keys</span></code></li></ol></pre><p data-anchor-id="60jl">注意事项：</p><ul data-anchor-id="wp29">
+<li><p>如果没有修改相应的权限，会导致免密码登陆失败</p></li>
+<li><p>如果需要几台机器之间能够相互无密码访问，需要在每台机器上authorized_keys中存储所有机器的pub文件</p></li>
+</ul></div>
+</body>
+</html>
